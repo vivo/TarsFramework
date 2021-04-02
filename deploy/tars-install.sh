@@ -307,6 +307,11 @@ mkdir -p ${SQL_TMP}
 
 cp -rf ${WORKDIR}/web/sql/*.sql ${WORKDIR}/framework/sql/
 
+FRAMEWORK_VERSION=`cat FRAMEWORK_VERSION.txt`
+if [ "${FRAMEWORK_VERSION}" != "" ]; then 
+    replacePath "2.1.0" ${FRAMEWORK_VERSION} ${WORKDIR}/framework/sql/
+fi
+
 if [ -d ${WORKDIR}/web/demo/sql ]; then
   cp -rf ${WORKDIR}/web/demo/sql/*.sql ${WORKDIR}/framework/sql/
 fi
@@ -354,9 +359,7 @@ if [ "${SLAVE}" != "true" ]; then
         exec_mysql_script "GRANT ${MYSQL_GRANT} ON *.* TO '${TARS_USER}'@'localhost' WITH GRANT OPTION;"
         exec_mysql_script "CREATE USER '${TARS_USER}'@'${HOSTIP}' IDENTIFIED WITH mysql_native_password BY '${TARS_PASS}';"
         exec_mysql_script "GRANT ${MYSQL_GRANT} ON *.* TO '${TARS_USER}'@'${HOSTIP}' WITH GRANT OPTION;"
-    fi
-
-    if [ `echo $MYSQL_VER|grep ^5.` ]; then
+    elif [ `echo $MYSQL_VER|grep ^5.` ]; then
         exec_mysql_script "grant ${MYSQL_GRANT} on *.* to '${TARS_USER}'@'%' identified by '${TARS_PASS}' with grant option;"
         if [ $? != 0 ]; then
             LOG_DEBUG "grant error, exit." 
@@ -366,6 +369,16 @@ if [ "${SLAVE}" != "true" ]; then
         exec_mysql_script "grant ${MYSQL_GRANT} on *.* to '${TARS_USER}'@'localhost' identified by '${TARS_PASS}' with grant option;"
         exec_mysql_script "grant ${MYSQL_GRANT} on *.* to '${TARS_USER}'@'$HOSTIP' identified by '${TARS_PASS}' with grant option;"
         exec_mysql_script "flush privileges;"
+    else
+        exec_mysql_script "grant ${MYSQL_GRANT} on *.* to '${TARS_USER}'@'%' identified by '${TARS_PASS}' with grant option;"
+	if [ $? != 0 ]; then
+	    LOG_DEBUG "grant error, exit."
+	    exit 1
+	fi
+
+	exec_mysql_script "grant ${MYSQL_GRANT} on *.* to '${TARS_USER}'@'localhost' identified by '${TARS_PASS}' with grant option;"
+	exec_mysql_script "grant ${MYSQL_GRANT} on *.* to '${TARS_USER}'@'$HOSTIP' identified by '${TARS_PASS}' with grant option;"
+	exec_mysql_script "flush privileges;"
     fi
 fi
 

@@ -1,4 +1,4 @@
-name: deploy-docker
+name: build-docker
 
 on:
   push:
@@ -6,17 +6,19 @@ on:
       - v*
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: docker login
         run: |
           docker login -u ${{ secrets.name }} -p ${{ secrets.pass }} 
+          env
       - uses: actions/checkout@v1
       - name: deploy docker
         run: |
           echo $GITHUB_SHA
+          env
           tag=$(git describe --tags $(git rev-list --tags --max-count=1) --abbrev=0 --always)
           echo $tag
           git clone https://github.com/TarsCloud/TarsDocker
           cd TarsDocker/framework
-          ./build-docker.sh $tag
+          ./build-docker.sh $tag master latestRelease

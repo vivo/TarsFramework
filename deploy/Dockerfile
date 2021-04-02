@@ -1,38 +1,33 @@
-FROM centos/systemd
+# pull source and build docker auto in docker hub
+FROM ubuntu:20.04
 
-#ENV MIRROR http://mirrors.cloud.tencent.com
-ENV MIRROR http://mirrors.cloud.tencent.com
+WORKDIR /root/
+
+# Install
+RUN apt update 
+RUN DEBIAN_FRONTEND=noninteractive apt install -y mysql-client git build-essential unzip make golang flex bison net-tools wget cmake \
+    && apt install -y libprotobuf-dev libprotobuf-c-dev \
+    && apt install -y zlib1g-dev curl libssl-dev \
+    && apt install -y nodejs npm \
+    && apt-get clean
+
+# Get and install nodejs
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
+
 ENV TARS_INSTALL /usr/local/tars/cpp/deploy
-
-COPY centos7_base.repo /etc/yum.repos.d/
-
-RUN mkdir -p ${TARS_INSTALL} \
-    && yum makecache fast \
-    && yum install -y yum-utils psmisc net-tools wget unzip telnet \
-    yum clean all && rm -rf /var/cache/yum
 
 COPY web ${TARS_INSTALL}/web
 
-RUN wget https://github.com/nvm-sh/nvm/archive/v0.35.1.zip;unzip v0.35.1.zip; cp -rf nvm-0.35.1 $HOME/.nvm
+COPY . /data
 
-RUN echo 'NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"; [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion";' >> $HOME/.bashrc;
+RUN cd /data && rm -rf build-tmp && mkdir -p build-tmp && cd build-tmp && cmake .. && make -j4 && make install && strip ${TARS_INSTALL}/framework/servers/tars*/bin/tars* && cd / && rm -rf /data
 
-RUN source $HOME/.bashrc \
-    && export NVM_NODEJS_ORG_MIRROR=${MIRROR}/nodejs-release && nvm install v12.13.0
-
-COPY tars2case ${TARS_INSTALL}/../tools/tars2case 
-COPY framework ${TARS_INSTALL}/framework
-COPY tools ${TARS_INSTALL}/tools
-COPY docker-init.sh tars-install.sh tar-server.sh web-install.sh mysql-tool ${TARS_INSTALL}/
-
-RUN chmod a+x ${TARS_INSTALL}/../tools/tars2case && ${TARS_INSTALL}/tar-server.sh
+RUN ${TARS_INSTALL}/tar-server.sh
 
 ENTRYPOINT [ "/usr/local/tars/cpp/deploy/docker-init.sh"]
 
 #web
 EXPOSE 3000
-#user system
-EXPOSE 3001
 #tarslog
 EXPOSE 18993
 #tarspatch

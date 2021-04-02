@@ -1,4 +1,4 @@
-name: deploy-master-docker
+name: build-dev-docker
 
 on:
   push:
@@ -6,16 +6,18 @@ on:
       - master
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: docker login
         run: |
           docker login -u ${{ secrets.name }} -p ${{ secrets.pass }} 
+          env
       - uses: actions/checkout@v1
       - name: deploy docker
         run: |
           echo $GITHUB_SHA
+          env
           rm -rf TarsDocker
           git clone https://github.com/TarsCloud/TarsDocker
           cd TarsDocker/framework
-          ./build-master.sh
+          ./build-docker.sh master master latest dev

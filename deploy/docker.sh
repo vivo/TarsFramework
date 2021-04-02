@@ -1,15 +1,39 @@
-
 #!/bin/bash
 
-if [ $# -lt 1 ]; then
-    echo $0 version
-    exit
+if [ $# -lt 2  ]; then
+    echo $0 version arm64/amd64
+    echo "example: "$0 v2.4.15 arm64
+    echo "example: "$0 v2.4.15 amd64
+    exit 1      
+fi              
+
+SRC=`pwd`
+
+if [ ! -d "deploy" ]; then
+    echo "you must execute $0 in framework directory."
+    exit 1
 fi
 
-workdir=$(cd $(dirname $0); pwd)
+if [ ! -d "web" ]; then
+    echo "you must git clone https://github.com/TarsCloud/TarsWeb web in framework source directory"
+    exit 1
+fi
 
-strip ${workdir}/framework/servers/tars*/bin/tars*
-docker rmi -f tarscloud/framework:$1
-#docker build --no-cache ${workdir}/. -t tarscloud/framework:$1
-docker build --no-cache ${workdir}/. -t tarscloud/framework:$1
+
+export DOCKER_CLI_EXPERIMENTAL=enabled 
+docker buildx create --use --name tars-builder 
+docker buildx inspect tars-builder --bootstrap
+docker run --rm --privileged docker/binfmt:a7996909642ee92942dcd6cff44b9b95f08dad64
+
+if [ "$2" == "amd64" ]; then
+    docker buildx build . --file "deploy/Dockerfile" --tag tarscloud/framework:$1 --platform=linux/amd64 -o type=docker
+elif [ "$2" == "arm64" ]; then
+    docker buildx build . --file "deploy/Dockerfile" --tag tarscloud/framework:$1 --platform=linux/arm64  -o type=docker
+else
+    echo "example: "$0 v2.4.15 arm64
+    echo "example: "$0 v2.4.15 amd64
+fi
+
+
+
 
